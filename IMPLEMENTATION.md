@@ -8,7 +8,7 @@
 - [x] Provide native and Docker configurations with PostgreSQL, Redis, API, worker/beat, persistent state and migrations.
 - [x] Exercise native setup, isolated services, indexing, retrieval and widget streaming with mocked generation.
 - [x] Exercise Redis-backed gateway ownership and limits across two processes.
-- [ ] Finish clean-checkout validation and the Docker full-stack build/run after resource allocation is sufficient.
+- [x] Verify clean-checkout dependency installation/checks and the Docker full-stack build, indexing and mocked widget streaming.
 - [ ] Complete live model quality, retention, backup/restore and production release gates for each real deployment.
 
 See `docs/VERIFICATION.md` for observed results and limitations. Do not infer deployment or readiness from this checklist alone.
