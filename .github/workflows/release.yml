@@ -1,0 +1,107 @@
+name: Build verified images and deploy
+on:
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: Deploy to the configured private Dokploy target after all checks succeed
+        type: boolean
+        required: true
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: starter-production-release
+  cancel-in-progress: false
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@v4
+        with: {node-version: '22', cache: npm}
+      - run: npm ci --ignore-scripts
+      - run: npm run check
+  build:
+    needs: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      backend: ${{ steps.digests.outputs.backend }}
+      gateway: ${{ steps.digests.outputs.gateway }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Read immutable source revision
+        id: source
+        run: |
+          node --input-type=module <<'JS'
+          import fs from 'node:fs';
+          const source=JSON.parse(fs.readFileSync('source.lock.json','utf8'));
+          if(!/^https:\/\/github\.com\/[\w.-]+\/[\w.-]+\.git$/.test(source.repository)||! /^[a-f0-9]{40}$/.test(source.revision)) throw Error('Invalid source lock');
+          fs.appendFileSync(process.env.GITHUB_OUTPUT,`context=${source.repository}#${source.revision}\nrevision=${source.revision}\n`);
+          JS
+      - uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e
+      - name: Build pinned backend on the GitHub AMD64 runner
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc
+        with:
+          context: ${{ steps.source.outputs.context }}
+          file: docsgpt/Dockerfile
+          platforms: linux/amd64
+          load: true
+          tags: ghcr.io/${{ github.repository }}/docsgpt:${{ steps.source.outputs.revision }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ steps.source.outputs.revision }}
+          build-args: EMBEDDINGS_PREFETCH=ibm-granite/granite-embedding-97m-multilingual-r2
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+      - name: Verify offline tokenization and real local embeddings
+        env:
+          backend: ghcr.io/${{ github.repository }}/docsgpt:${{ steps.source.outputs.revision }}
+        run: docker run --rm --network none "$backend" python -m docsgpt.scripts.verify_offline ibm-granite/granite-embedding-97m-multilingual-r2
+      - name: Build pinned gateway and widget
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc
+        with:
+          context: .
+          platforms: linux/amd64
+          load: true
+          tags: ghcr.io/${{ github.repository }}/gateway:${{ github.sha }}
+          cache-from: type=gha,scope=gateway
+          cache-to: type=gha,mode=max,scope=gateway
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish only verified images and record immutable digests
+        id: digests
+        env:
+          backend: ghcr.io/${{ github.repository }}/docsgpt:${{ steps.source.outputs.revision }}
+          gateway: ghcr.io/${{ github.repository }}/gateway:${{ github.sha }}
+        run: |
+          docker push "$backend"
+          docker push "$gateway"
+          echo "backend=$(docker inspect --format='{{index .RepoDigests 0}}' "$backend")" >> "$GITHUB_OUTPUT"
+          echo "gateway=$(docker inspect --format='{{index .RepoDigests 0}}' "$gateway")" >> "$GITHUB_OUTPUT"
+  deploy:
+    needs: build
+    if: ${{ inputs.deploy && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment: production
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@v4
+        with: {node-version: '22', cache: npm}
+      - run: npm ci --ignore-scripts
+      - name: Deploy the verified image digests through Dokploy
+        run: node --import tsx scripts/deploy-dokploy.ts
+        env:
+          BACKEND_IMAGE: ${{ needs.build.outputs.backend }}
+          GATEWAY_IMAGE: ${{ needs.build.outputs.gateway }}
+          DOKPLOY_MCP_URL: ${{ secrets.DOKPLOY_MCP_URL }}
+          DOKPLOY_MCP_HEADERS: ${{ secrets.DOKPLOY_MCP_HEADERS }}
+          DOKPLOY_COMPOSE_ID: ${{ secrets.DOKPLOY_COMPOSE_ID }}
+          DOKPLOY_COMPOSE_JSON: ${{ secrets.DOKPLOY_COMPOSE_JSON }}

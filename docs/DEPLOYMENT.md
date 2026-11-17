@@ -2,6 +2,21 @@
 
 The starter is provider-agnostic. Private deployments may supply their own config file and environment through a secret manager or ignored overlay. No private infrastructure, package registry or browser session is required for installation.
 
+## Optional GitHub runner release
+
+`.github/workflows/release.yml` builds Linux AMD64 images on GitHub, verifies actual offline embedding/tokenizer execution, and publishes the backend plus gateway to GHCR. It is manual (`workflow_dispatch`), with deployment off by default. The deployment job has `needs: build`: a failed check, build, embedding verification or image push cannot trigger deployment. The target server pulls immutable image digests and does not compile source. Runtime CPU compatibility still needs verification on that server.
+
+For the optional Dokploy MCP release adapter, configure encrypted GitHub Actions secrets outside Git: `DOKPLOY_MCP_URL`, `DOKPLOY_MCP_HEADERS` (a JSON header map), `DOKPLOY_COMPOSE_ID`, and `DOKPLOY_COMPOSE_JSON` (a reviewed private JSON Compose template). Use `__DOCSGPT_IMAGE__` and `__GATEWAY_IMAGE__` image placeholders; omit all `build` fields and floating `latest` references. Keep credentials in Dokploy's existing environment, referenced through `.env`; the release adapter deliberately preserves that environment and volumes. Ensure the target can authenticate to GHCR if the packages are private. The adapter is optional; ordinary Docker/native installation does not require an MCP connection.
+
+From a configured repository checkout, an authorized operator can run:
+
+```sh
+gh workflow run release.yml -f deploy=true
+gh run list --workflow release.yml
+```
+
+The release job checks Dokploy's deployment result. Live Persian generation, source correctness, ownership, widget functionality and production-host embedding compatibility remain required acceptance checks after deployment. Keep public chat disabled until they pass. Never paste the secret header map or private template into an AI conversation.
+
 Before production: verify at least 4 GB available memory plus capacity for other services; use immutable source/image revisions; back up state; record the running versions; verify the provider's real generation and reasoning parameters; inspect retrieved passages; test anonymous isolation, limits, streaming/cancellation and source links. Do not enable chat based only on container health or mocked tests.
 
 The Compose file deliberately binds the gateway and protected management port to loopback. Put only the gateway behind your existing authenticated hosting/ingress/TLS arrangement. Keep management private or require a separate authenticated tunnel/access policy. Never route the whole backend API publicly just to make the widget work. Do not expose PostgreSQL, Redis or internal worker ports. Do not start a competing reverse proxy if your host already has ingress.
