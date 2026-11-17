@@ -15,6 +15,12 @@ gh workflow run release.yml -f deploy=true
 gh run list --workflow release.yml
 ```
 
+Older x86 VMs may expose insufficient CPU instructions for current binary wheels even when compilation succeeds elsewhere. The optional `legacy_cpu=true` workflow input rebuilds the **same pinned NumPy source version** with `cpu-baseline=none` and disables dispatch, then tests offline embeddings and FAISS under a restricted emulated CPU before publication. It preserves the embedding model and vector format. This compatibility path is under verification; every target still requires its own embedding/application checks and ingestion/query latency measurements before chat is enabled.
+
+```sh
+gh workflow run release.yml -f deploy=true -f legacy_cpu=true
+```
+
 The release job checks Dokploy's deployment result. Live Persian generation, source correctness, ownership, widget functionality and production-host embedding compatibility remain required acceptance checks after deployment. Keep public chat disabled until they pass. Never paste the secret header map or private template into an AI conversation.
 
 Before production: verify at least 4 GB available memory plus capacity for other services; use immutable source/image revisions; back up state; record the running versions; verify the provider's real generation and reasoning parameters; inspect retrieved passages; test anonymous isolation, limits, streaming/cancellation and source links. Do not enable chat based only on container health or mocked tests.

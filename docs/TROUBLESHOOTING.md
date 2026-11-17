@@ -1,5 +1,7 @@
 # Troubleshooting without exposing secrets
 
+For `Illegal instruction` or NumPy `X86_V2` failures, check exposed VM CPU flags as well as RAM. A generic KVM CPU may hide SSE4/POPCNT. Moving compilation to GitHub addresses the build-runner limitation; runtime embeddings need separate verification. The optional release `legacy_cpu` profile in DEPLOYMENT.md recompiles the pinned NumPy source and tests a restricted CPU before allowing publication/deployment. If another native library fails, keep chat disabled and preserve data while investigating. Do not silently change embedding models or treat compilation as proof of runtime support.
+
 Run `npm run doctor` from the repository root. Share the name of the failed check and a sanitized error category, not `.env`, tokens, customer messages or raw database exports.
 
 | Symptom | Check and recovery |
