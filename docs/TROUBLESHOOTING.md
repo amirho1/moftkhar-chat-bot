@@ -4,6 +4,8 @@ For `Illegal instruction` or NumPy `X86_V2` failures, check exposed VM CPU flags
 
 Run `npm run doctor` from the repository root. Share the name of the failed check and a sanitized error category, not `.env`, tokens, customer messages or raw database exports.
 
+Tool output containing `[REDACTED...]` or `[MASKED...]` is a sanitized view, never a usable environment file or recovery copy. Do not save it back to a deployment. Use the original private file or the hosting provider's secret editor and preserve unrelated settings. A redaction marker can replace a variable name as well as its value.
+
 | Symptom | Check and recovery |
 | --- | --- |
 | `npm`/Node missing or wrong version | Install Node 22.12–22.x, reopen the terminal, run `node --version` and `npm ci`. |
