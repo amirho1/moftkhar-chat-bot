@@ -60,7 +60,8 @@ services:
       <<: *dependencies
       api: {condition: service_healthy}
     healthcheck:
-      test: [CMD-SHELL, "celery -A docsgpt.app.celery inspect ping --timeout 5 | grep -q pong"]
+      # Control ping does not need to import the API, models or embedding runtime.
+      test: [CMD-SHELL, "celery --broker \"$$CELERY_BROKER_URL\" inspect ping --timeout 5 | grep -q pong"]
       interval: 60s
       timeout: 15s
       start_period: 120s

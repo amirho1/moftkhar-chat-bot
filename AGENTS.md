@@ -72,6 +72,8 @@ Keep chat disabled until provider generation, ingestion, retrieval/citations, li
 
 Production organization overlays are optional and private. Never copy their domain, provider, support details, exports or screenshots into examples. Provider-specific configuration belongs in ignored overlays; public configuration remains provider-agnostic.
 
+`ops/omniroute-client-version/` is an optional existing-router repair, independent of installation. Read its README before use. Its manual GitHub workflow requires an immutable existing image and verified official client versions; it publishes only after checks and never automatically changes a shared router. Keep a rollback image and private data backup, preserve secrets and require meaningful generation tests rather than HTTP status alone.
+
 The optional `release.yml` workflow builds/verifies AMD64 images on GitHub and deploys only after its successful build job. `scripts/deploy-dokploy.ts` accepts a reviewed private JSON template and replaces image placeholders with immutable GHCR digests; it rejects server-side builds and preserves Dokploy environment secrets. Configure release secrets outside Git. Do not change the success dependency or bypass runtime acceptance because CI passed. See `docs/DEPLOYMENT.md` for the manual `gh workflow run release.yml -f deploy=true` command and required secret names.
 
 After changes, update affected documentation and run relevant tests. Report implemented, tested, deployed and blocked work separately, with exact commands and limitations. Mocked tests and API health do not prove live retrieval or production readiness. Never print secrets, full environment files, raw customer content or model request headers.
