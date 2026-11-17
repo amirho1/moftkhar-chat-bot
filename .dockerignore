@@ -1,0 +1,15 @@
+*
+!Dockerfile
+!package.json
+!package-lock.json
+!source.lock.json
+!src/
+!src/**
+!scripts/
+!scripts/**
+!config/
+!config/**
+!demo/
+!demo/**
+**/__pycache__/
+**/*.py

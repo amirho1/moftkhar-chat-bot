@@ -1,0 +1,36 @@
+{
+  "organization": {
+    "name": "Acme Demo",
+    "website": "https://example.com",
+    "supportUrl": "https://example.com/support"
+  },
+  "ui": {
+    "locale": "fa",
+    "theme": "light",
+    "color": "#7d54d1",
+    "title": "دستیار آزمایشی آکمه",
+    "greeting": "سلام! دربارهٔ محصولات خیالی آکمه سؤال بپرسید.",
+    "privacyHint": "رمز عبور، کد تأیید و اطلاعات حساس را ارسال نکنید.",
+    "questions": [
+      "مدت اشتراک پلن آزمایشی چقدر است؟",
+      "چطور با پشتیبانی تماس بگیرم؟"
+    ]
+  },
+  "knowledge": {
+    "name": "Fictional starter guide",
+    "mode": "file",
+    "file": "demo/knowledge.md",
+    "syncSeconds": 21600
+  },
+  "agent": {
+    "slug": "starter-support",
+    "contextTokens": 16000,
+    "historyTokens": 4000,
+    "tokenQuota": 200000,
+    "requestQuota": 500
+  },
+  "links": {
+    "allowedHosts": ["example.com"],
+    "allowedPaths": ["/support", "/products/"]
+  }
+}

@@ -1,0 +1,146 @@
+name: chatbot-starter
+x-logging: &logging
+  driver: json-file
+  options: {max-size: 10m, max-file: "3"}
+x-backend: &backend
+  image: chatbot-docsgpt:${DOCSGPT_REVISION:?Run npm run setup first}
+  build:
+    context: ${DOCSGPT_SOURCE_CONTEXT:?Run npm run setup first}
+    dockerfile: docsgpt/Dockerfile
+    args:
+      EMBEDDINGS_PREFETCH: ibm-granite/granite-embedding-97m-multilingual-r2
+  env_file: .runtime/docker.env
+  environment: &backend-env
+    CELERY_BROKER_URL: redis://redis:6379/0
+    CELERY_RESULT_BACKEND: redis://redis:6379/1
+    CACHE_REDIS_URL: redis://redis:6379/2
+    API_URL: http://api:7091
+    AUTO_MIGRATE: "false"
+    AUTH_TYPE: simple_jwt
+    DEFAULT_CHAT_TOOLS: none
+    DEPLOYMENT_TYPE: production
+    TRACES_CAPTURE_CONTENT: "false"
+    DECISION_ANALYTICS_ENABLED: "false"
+  volumes: &data
+    - inputs:/app/inputs
+    - indexes:/app/indexes
+    - vectors:/app/vectors
+  networks: [backend]
+  restart: unless-stopped
+  init: true
+  stop_grace_period: 45s
+  logging: *logging
+  security_opt: [no-new-privileges:true]
+  cap_drop: [ALL]
+  depends_on: &dependencies
+    postgres: {condition: service_healthy}
+    redis: {condition: service_healthy}
+services:
+  api:
+    <<: *backend
+    environment:
+      <<: *backend-env
+      AUTO_MIGRATE: "true"
+    mem_limit: 768m
+    cpus: 0.75
+    # Protected management access on loopback only. Production ingress must not expose it.
+    ports: ["127.0.0.1:7091:7091"]
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:7091/api/health', timeout=4)"]
+      interval: 30s
+      timeout: 5s
+      start_period: 120s
+      retries: 5
+  worker:
+    <<: *backend
+    command: [celery, -A, docsgpt.app.celery, worker, -l, WARNING, -B, --concurrency=1, -Q, "docsgpt,parsing,embeddings,ingest,analytics"]
+    mem_limit: 1g
+    cpus: 1.0
+    depends_on:
+      <<: *dependencies
+      api: {condition: service_healthy}
+    healthcheck:
+      test: [CMD-SHELL, "celery -A docsgpt.app.celery inspect ping --timeout 5 | grep -q pong"]
+      interval: 60s
+      timeout: 15s
+      start_period: 120s
+      retries: 3
+  web:
+    image: chatbot-starter-web:${DOCSGPT_REVISION}
+    build:
+      context: .
+      args:
+        DOCSGPT_REPOSITORY: ${DOCSGPT_REPOSITORY:-https://github.com/amirho1/DocsGPT.git}
+        DOCSGPT_REVISION: ${DOCSGPT_REVISION}
+    env_file: .runtime/docker.env
+    environment: {BIND_HOST: 0.0.0.0}
+    volumes: [ops-state:/starter/.runtime/state]
+    ports: ["127.0.0.1:3080:3080"]
+    networks: [backend]
+    restart: unless-stopped
+    init: true
+    mem_limit: 192m
+    logging: *logging
+    depends_on:
+      api: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3080/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+  sync:
+    image: chatbot-starter-web:${DOCSGPT_REVISION}
+    env_file: .runtime/docker.env
+    command: [npm, run, sync]
+    profiles: [website-sync]
+    networks: [backend]
+    restart: unless-stopped
+    mem_limit: 128m
+    logging: *logging
+    depends_on:
+      worker: {condition: service_healthy}
+  mock-model:
+    image: chatbot-starter-web:${DOCSGPT_REVISION}
+    command: [node, --import, tsx, demo/mock-model.ts]
+    environment: {MOCK_BIND_HOST: 0.0.0.0}
+    profiles: [demo-model]
+    networks: [backend]
+    mem_limit: 128m
+    logging: *logging
+    # Explicit fictional protocol fixture only; no host port or real provider credentials.
+  postgres:
+    image: postgres:16.15-alpine
+    environment: {POSTGRES_USER: chatbot, POSTGRES_DB: chatbot, POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?required}"}
+    volumes: [postgres:/var/lib/postgresql/data]
+    networks: [backend]
+    mem_limit: 256m
+    restart: unless-stopped
+    logging: *logging
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U chatbot -d chatbot]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+  redis:
+    image: redis:8.6.5-alpine
+    command: [redis-server, --appendonly, "yes", --maxmemory, 64mb, --maxmemory-policy, noeviction]
+    volumes: [redis:/data]
+    networks: [backend]
+    mem_limit: 96m
+    restart: unless-stopped
+    logging: *logging
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+networks:
+  backend:
+volumes:
+  postgres:
+  redis:
+  inputs:
+  indexes:
+  vectors:
+  ops-state:

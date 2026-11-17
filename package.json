@@ -1,0 +1,33 @@
+{
+  "name": "docsgpt-chatbot-starter",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.12 <23"
+  },
+  "scripts": {
+    "setup": "tsx scripts/setup.ts",
+    "services": "tsx scripts/services.ts",
+    "dev": "tsx scripts/dev.ts",
+    "start": "tsx src/server.ts",
+    "build": "tsc --noEmit",
+    "test": "tsx --test tests/*.test.ts",
+    "check": "npm run build && npm test && npm run scan",
+    "doctor": "tsx scripts/doctor.ts",
+    "bootstrap": "tsx scripts/bootstrap.ts",
+    "sync": "tsx scripts/sync.ts",
+    "scan": "tsx scripts/scan.ts",
+    "format": "prettier --write src scripts tests config package.json tsconfig.json"
+  },
+  "dependencies": {
+    "redis": "5.12.1",
+    "tsx": "4.23.15",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "22.19.9",
+    "prettier": "3.4.2",
+    "typescript": "5.7.2"
+  }
+}
