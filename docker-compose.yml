@@ -53,8 +53,12 @@ services:
       retries: 5
   worker:
     <<: *backend
+    environment:
+      <<: *backend-env
+      EMBEDDINGS_MODEL_BATCH_SIZE: "1"
+      EMBEDDINGS_BATCH_SIZE: "4"
     command: [celery, -A, docsgpt.app.celery, worker, -l, WARNING, -B, --concurrency=1, -Q, "docsgpt,parsing,embeddings,ingest,analytics"]
-    mem_limit: 1g
+    mem_limit: ${DOCSGPT_WORKER_MEMORY:-2g}
     cpus: 1.0
     depends_on:
       <<: *dependencies
