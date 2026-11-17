@@ -23,13 +23,15 @@ const client = new DocsGPTClient(
   process.env.DOCSGPT_MANAGEMENT_URL ?? "http://127.0.0.1:7091",
   process.env.DOCSGPT_MANAGEMENT_TOKEN ?? "",
 );
+const directProvider =
+  process.env.OPENAI_BASE_URL &&
+  (process.env.API_KEY || process.env.OPENAI_API_KEY);
 if (
   !process.env.LLM_NAME ||
-  !process.env.API_KEY ||
-  !process.env.OPENAI_BASE_URL
+  (!directProvider && !process.env.MODELS_CONFIG_DIR)
 )
   throw new Error(
-    "Set an authorized OpenAI-compatible provider locally in .env. No demo agent or substitute provider is selected.",
+    "Set an authorized direct endpoint/key or operator model catalog locally in .env. No demo agent or substitute provider is selected.",
   );
 const sources = await client.request("GET", "/api/sources");
 if (!Array.isArray(sources))
