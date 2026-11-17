@@ -15,7 +15,7 @@ gh workflow run release.yml -f deploy=true
 gh run list --workflow release.yml
 ```
 
-Older x86 VMs may expose insufficient CPU instructions for current binary wheels even when compilation succeeds elsewhere. The optional `legacy_cpu=true` workflow input rebuilds the **same pinned NumPy source version** with `cpu-baseline=none` and disables dispatch, then tests offline embeddings and FAISS under a restricted emulated CPU before publication. It preserves the embedding model and vector format. This compatibility path is under verification; every target still requires its own embedding/application checks and ingestion/query latency measurements before chat is enabled.
+Older x86 VMs may expose insufficient CPU instructions for current binary wheels even when compilation succeeds elsewhere. The optional `legacy_cpu=true` workflow input rebuilds the **same pinned NumPy source version** with `cpu-baseline=none` and disables dispatch, then tests offline embeddings, FAISS operations and baseline metadata before publication. It preserves the embedding model and vector format. The legacy deployment adapter requires a network-isolated `preflight` service using the same backend image and `docsgpt.scripts.verify_offline`, with the API depending on its successful completion. Every target still requires its own application checks and ingestion/query latency measurements before chat is enabled. The attempted QEMU CPU test stalled and was not counted as a pass.
 
 ```sh
 gh workflow run release.yml -f deploy=true -f legacy_cpu=true

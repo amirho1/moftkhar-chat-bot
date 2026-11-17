@@ -9,6 +9,7 @@ export function prepareDeployment(
   template: string,
   backend: string,
   gateway: string,
+  requireCpuPreflight = false,
 ) {
   const digest = /^ghcr\.io\/[a-z0-9._/-]+@sha256:[a-f0-9]{64}$/;
   if (!digest.test(backend) || !digest.test(gateway))
@@ -41,6 +42,19 @@ export function prepareDeployment(
   }
   if (!replacements)
     throw new Error("Template has no release image placeholders");
+  if (
+    requireCpuPreflight &&
+    (doc.services.preflight?.image !== backend ||
+      doc.services.preflight?.network_mode !== "none" ||
+      doc.services.api?.depends_on?.preflight?.condition !==
+        "service_completed_successfully" ||
+      !JSON.stringify(doc.services.preflight?.command).includes(
+        "docsgpt.scripts.verify_offline",
+      ))
+  )
+    throw new Error(
+      "Legacy CPU deployment requires a target-host embedding preflight before API startup",
+    );
   return doc;
 }
 
@@ -50,6 +64,7 @@ async function deploy() {
     process.env.DOKPLOY_COMPOSE_JSON ?? "",
     process.env.BACKEND_IMAGE ?? "",
     process.env.GATEWAY_IMAGE ?? "",
+    process.env.LEGACY_CPU === "true",
   );
   const endpoint = new URL(process.env.DOKPLOY_MCP_URL ?? "");
   if (endpoint.protocol !== "https:")

@@ -68,18 +68,17 @@ jobs:
           backend: ghcr.io/${{ github.repository }}/docsgpt:${{ steps.source.outputs.revision }}
         run: docker build --builder default --build-arg BASE_IMAGE="$backend" -f Dockerfile.legacy-cpu -t "$backend" .
       - name: Verify offline tokenization and real local embeddings
+        timeout-minutes: 3
         env:
           backend: ghcr.io/${{ github.repository }}/docsgpt:${{ steps.source.outputs.revision }}
         run: docker run --rm --network none "$backend" python -m docsgpt.scripts.verify_offline ibm-granite/granite-embedding-97m-multilingual-r2
-      - name: Verify old CPU embedding and FAISS compatibility
+      - name: Verify legacy build metadata and FAISS operations
         if: ${{ inputs.legacy_cpu }}
+        timeout-minutes: 3
         env:
           backend: ghcr.io/${{ github.repository }}/docsgpt:${{ steps.source.outputs.revision }}
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends qemu-user-static
-          docker run --rm --network none -e EMBEDDINGS_THREADS=1 -e OPENBLAS_NUM_THREADS=1 -v /usr/bin/qemu-x86_64-static:/cpu-probe:ro "$backend" /cpu-probe -cpu qemu64 /venv/bin/python -m docsgpt.scripts.verify_offline ibm-granite/granite-embedding-97m-multilingual-r2
-          docker run --rm --network none -v /usr/bin/qemu-x86_64-static:/cpu-probe:ro "$backend" /cpu-probe -cpu qemu64 /venv/bin/python -c "import faiss,numpy as np; x=np.zeros((1,384),dtype='float32'); index=faiss.IndexFlatL2(384); index.add(x); assert index.search(x,1)[1][0,0]==0; print('Legacy CPU FAISS add/search passed')"
+          docker run --rm --network none --ulimit core=0 -e OPENBLAS_NUM_THREADS=1 "$backend" python -c "import faiss,numpy as np; from numpy._core._multiarray_umath import __cpu_baseline__; assert not __cpu_baseline__, __cpu_baseline__; x=np.zeros((1,384),dtype='float32'); index=faiss.IndexFlatL2(384); index.add(x); assert index.search(x,1)[1][0,0]==0; print('Baseline disabled; FAISS add/search passed. Target-host preflight is still required.')"
       - name: Build pinned gateway and widget
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc
         with:
@@ -122,6 +121,7 @@ jobs:
         env:
           BACKEND_IMAGE: ${{ needs.build.outputs.backend }}
           GATEWAY_IMAGE: ${{ needs.build.outputs.gateway }}
+          LEGACY_CPU: ${{ inputs.legacy_cpu }}
           DOKPLOY_MCP_URL: ${{ secrets.DOKPLOY_MCP_URL }}
           DOKPLOY_MCP_HEADERS: ${{ secrets.DOKPLOY_MCP_HEADERS }}
           DOKPLOY_COMPOSE_ID: ${{ secrets.DOKPLOY_COMPOSE_ID }}
