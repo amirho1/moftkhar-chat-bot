@@ -1,0 +1,19 @@
+# Optional compatibility layer for old x86 VMs. The application, dependency
+# versions, embedding model and vector format remain pinned to the base image.
+ARG BASE_IMAGE
+FROM ${BASE_IMAGE} AS numpy-wheel
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends build-essential gfortran pkg-config libopenblas-dev curl ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN python -m venv /numpy-build && /numpy-build/bin/pip install --no-cache-dir meson-python==0.22.1 meson==1.12.1 Cython==3.3.1 pyproject-metadata==0.12.1 packaging==26.3
+# This sdist hash is already present in the pinned upstream requirements.
+RUN curl -fsSL https://files.pythonhosted.org/packages/95/b0/c7453d0b6e2073c3264468b106ee1563750cecc910965e67357e3698c83e/numpy-2.5.4.tar.gz -o /tmp/numpy.tar.gz && \
+    printf '%s  %s\n' 9a94cf751c9ad8ebaa835bcd3d40dacf8534ad086b88c38029b65123c7999d2a /tmp/numpy.tar.gz | sha256sum -c - && \
+    /numpy-build/bin/pip wheel --no-deps --no-build-isolation --wheel-dir=/wheels /tmp/numpy.tar.gz -Csetup-args=-Dcpu-baseline=none -Csetup-args=-Dcpu-dispatch=none -Csetup-args=-Dblas=openblas -Csetup-args=-Dlapack=openblas
+
+FROM ${BASE_IMAGE}
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends libopenblas0-pthread libgfortran5 && rm -rf /var/lib/apt/lists/*
+COPY --from=numpy-wheel /wheels /tmp/numpy-wheels
+RUN /venv/bin/pip install --no-deps --force-reinstall /tmp/numpy-wheels/numpy-*.whl && rm -rf /tmp/numpy-wheels
+LABEL org.opencontainers.image.cpu-profile="legacy-x86-numpy-baseline-none"
+USER appuser
