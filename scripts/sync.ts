@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
 import { loadConfig, loadLocalEnv } from "../src/lib/config.ts";
 import { DocsGPTClient } from "./docsgpt-client.ts";
+import { selectKnowledgeSource } from "./knowledge-source.ts";
 
 loadLocalEnv();
 const config = loadConfig();
@@ -23,10 +24,10 @@ if (config.knowledge.mode !== "website") {
     if (await cache.set("starter:sync:lock", lease, { NX: true, EX: 1500 })) {
       try {
         const sources = await client.request("GET", "/api/sources");
-        const source = sources.find(
-          (source: any) =>
-            source.name === config.knowledge.name &&
-            source.ownership === "user",
+        const source = selectKnowledgeSource(
+          sources,
+          config.knowledge.name,
+          process.env.DOCSGPT_SOURCE_ID,
         );
         if (!source) throw new Error("source_not_provisioned");
         const job = await client.request("POST", "/api/sync_source", {

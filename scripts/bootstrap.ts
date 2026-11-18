@@ -9,6 +9,7 @@ import { resolve, basename, sep } from "node:path";
 import { createHash } from "node:crypto";
 import { loadConfig, loadLocalEnv } from "../src/lib/config.ts";
 import { DocsGPTClient } from "./docsgpt-client.ts";
+import { selectKnowledgeSource } from "./knowledge-source.ts";
 
 loadLocalEnv();
 const config = loadConfig();
@@ -34,15 +35,11 @@ if (
     "Set an authorized direct endpoint/key or operator model catalog locally in .env. No demo agent or substitute provider is selected.",
   );
 const sources = await client.request("GET", "/api/sources");
-if (!Array.isArray(sources))
-  throw new Error("Unexpected source API response; stop to prevent duplicates");
-const matches = sources.filter(
-  (source) =>
-    source.name === config.knowledge.name && source.ownership === "user",
-);
-if (matches.length > 1)
-  throw new Error("Duplicate knowledge names require review");
-let sourceId = matches[0]?.id;
+let sourceId = selectKnowledgeSource(
+  sources,
+  config.knowledge.name,
+  process.env.DOCSGPT_SOURCE_ID,
+)?.id;
 if (config.knowledge.mode === "file") {
   const file = realpathSync(config.knowledge.file ?? "");
   if (
