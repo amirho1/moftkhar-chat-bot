@@ -33,7 +33,7 @@ configured model prices as verified provider invoices. Keep chat disabled until 
 selected provider, reasoning mode, retrieval, citations and spend ceilings are verified.
 
 For commercial integration, keep phone-only OTP identity, payment intents, verified
-grants and billing UI in the existing application. Reuse its SMS provider and gateway.
+grants in the existing application. The customer billing UI can run in the fork’s restricted customer build. Reuse its SMS provider and gateway.
 Never trust browser success flags or caller-supplied tenant/price/duration values.
 Do not add registration passwords, required email, public tools or per-tenant stacks.
 No company secrets, phone records or deployment overlays belong in this reusable repo.
@@ -48,3 +48,23 @@ When verification is constrained to an existing Chrome session, attach only thro
 the authorized extension or already-enabled connection. Never launch another browser,
 change startup flags, use Brave, clear shared cookies or close the user's browser.
 Report any unrun mobile/widget checks separately from mocked API tests.
+
+## Customer frontend and upstream fixes
+
+The fork’s `feat/customer-saas-panel` branch adds a separate `customer.html` entry
+inside the existing DocsGPT frontend. It directly reuses upstream section navigation,
+layouts, forms, cards, mobile sheets, translation and direction components. The normal
+management entry remains unchanged and private. A scoped adapter calls the existing
+application’s owner-authorized APIs; it never initializes native authentication or
+loads native browser credentials. Hiding navigation is not a security boundary.
+
+Keep the shared native backend/widget source lock independent of the customer UI pin.
+Build the customer entry with `npm run build:customer` in the fork’s frontend, then use
+`node scripts/package-customer.mjs /absolute/artifact/directory` from a clean committed
+revision. The bundle includes its source revision, license and SHA-256 manifest. See
+the fork’s `CUSTOMER_PANEL.md` for integration and update commands.
+
+Fetch upstream fixes into a temporary integration branch, merge and resolve conflicts,
+run native/customer builds, regression tests and authorized browser acceptance, then
+merge into the customer feature branch. Pin the reviewed artifact before deploying;
+never reset the feature branch or auto-deploy untested upstream updates.

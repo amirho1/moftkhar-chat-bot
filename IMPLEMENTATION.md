@@ -9,6 +9,7 @@
 - [x] Exercise native setup, isolated services, indexing, retrieval and widget streaming with mocked generation.
 - [x] Exercise Redis-backed gateway ownership and limits across two processes.
 - [x] Verify clean-checkout dependency installation/checks and the Docker full-stack build, indexing and mocked widget streaming.
+- [x] Document the fork-based customer frontend and reviewed upstream-update workflow, independently of the native backend/widget pin.
 - [ ] Complete live model quality, retention, backup/restore and production release gates for each real deployment.
 
 See `docs/VERIFICATION.md` for observed results and limitations. Do not infer deployment or readiness from this checklist alone.
