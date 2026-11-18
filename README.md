@@ -1,7 +1,9 @@
 # DocsGPT chatbot starter
 
 The pinned fork supports bounded website sources with optional private-path exclusion
-and validates crawl scope before following redirects. A separate customer portal can
+and validates crawl scope before following redirects. Website requests identify
+DocsGPT without a fabricated search-engine referrer, avoiding HTTP 406 responses
+from sites that reject incomplete browser identifiers. A separate customer portal can
 use one native authenticated identity per workspace while keeping this management
 service private. See [shared-backend integration](docs/sharedPortal.md).
 
