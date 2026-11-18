@@ -4,6 +4,12 @@ This is a reusable DocsGPT support-chat starter. It contains no production organ
 
 ## Architecture and boundaries
 
+For a shared customer portal integration, follow `docs/sharedPortal.md`: preserve native
+workspace ownership, keep management private, use phone-first OTP and server-verified
+payment grants in the existing application, and distinguish actual usage from estimates.
+Respect a user's existing-Chrome-only constraint; never fall back to Brave or a fresh
+browser. Phone records and private deployment overlays must remain outside this repo.
+
 - `src/server.ts`: Node HTTP gateway and small demonstration page. It serves the pinned widget and a public configuration projection, fixes the agent key server-side, and refuses management paths.
 - `src/lib/`: configuration validation, bounded input, signed anonymous sessions, shared Redis limits, conversation ownership and safe SSE projection.
 - `scripts/`: TypeScript installation, initialization, management bootstrap, synchronization, diagnostics and privacy scanning. Keep new starter scripts in TypeScript. DocsGPT itself remains Python.

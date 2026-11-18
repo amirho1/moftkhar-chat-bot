@@ -1,5 +1,10 @@
 # DocsGPT chatbot starter
 
+The pinned fork supports bounded website sources with optional private-path exclusion
+and validates crawl scope before following redirects. A separate customer portal can
+use one native authenticated identity per workspace while keeping this management
+service private. See [shared-backend integration](docs/sharedPortal.md).
+
 Build a support chatbot with an AI coding assistant. The starter includes a Persian-enabled DocsGPT fork, a chat widget, a protected public gateway, and fictional example knowledge. Persian uses RTL; English uses LTR. You do not need any private account or infrastructure connection to install it.
 
 **Release status: under verification.** The code has focused automated checks, but the release checklist in [docs/VERIFICATION.md](docs/VERIFICATION.md) must pass before production use or describing this repository as ready to share.
